@@ -201,6 +201,8 @@ func (g *Gardener) Create(containerSpec garden.ContainerSpec) (ctr garden.Contai
 
 			log.Info("start")
 
+			panic(err)
+
 			err := g.destroy(log, containerSpec.Handle)
 			if err != nil {
 				log.Error("destroy-failed", err)

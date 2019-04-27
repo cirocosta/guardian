@@ -181,6 +181,7 @@ func defaultBindMounts() []specs.Mount {
 
 	return []specs.Mount{
 		{Type: "sysfs", Source: "sysfs", Destination: "/sys", Options: []string{"nosuid", "noexec", "nodev", "ro"}},
+		{Type: "tmpfs", Source: "tmpfs", Destination: "/dev", Options: []string{"nosuid", "strictatime", "mode=755", "size=65536k"}},
 		{Type: "tmpfs", Source: "tmpfs", Destination: "/dev/shm", Options: []string{"rw", "nodev", "relatime"}},
 		{Type: "devpts", Source: "devpts", Destination: "/dev/pts",
 			Options: []string{"nosuid", "noexec", "newinstance", fmt.Sprintf("gid=%d", devptsGid), "ptmxmode=0666", "mode=0620"}},

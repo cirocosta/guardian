@@ -474,7 +474,8 @@ func (cmd *CommonCommand) wireContainerizer(log lager.Logger, factory GardenFact
 		WithMounts(unprivilegedMounts...).
 		WithMaskedPaths(defaultMaskedPaths())
 
-	unprivilegedBundle.Spec.Linux.Seccomp = seccomp
+	// unprivilegedBundle.Spec.Linux.Seccomp = seccomp
+
 	if cmd.Containers.ApparmorProfile != "" {
 		unprivilegedBundle = unprivilegedBundle.WithApparmorProfile(cmd.Containers.ApparmorProfile)
 	}
