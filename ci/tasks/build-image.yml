@@ -12,6 +12,8 @@ params:
 
 inputs:
 - name: repository
+- name: bin
+  path: repository/bin
 
 outputs:
 - name: image
