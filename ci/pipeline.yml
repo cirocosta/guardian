@@ -1,0 +1,44 @@
+resources:
+  - name: repository
+    type: git
+    source:
+      uri: https://github.com/cirocosta/guardian
+      branch: tracing
+
+  - name: container-image
+    type: registry-image
+    source:
+      repository: cirocosta/concourse-gdn
+      tag: tracing
+      username: ((docker-username))
+      password: ((docker-password))
+
+
+jobs:
+  - name: build
+    public: true
+    serial: true
+    plan:
+      - get: repository
+        trigger: true
+      - task: build-binaries
+        config:
+          platform: linux
+          image_resource: { type: registry-image, source: { repository: golang } }
+          inputs: [{name: repository, path: .}]
+          outputs: [{name: bin}]
+          run:
+            path: /bin/bash
+            args:
+              - -cex
+              - |
+                apt update
+                apt install -y git make
+                make build -j3
+      - task: build-image
+        privileged: true
+        file: repository/ci/tasks/build-image.yml
+      - put: container-image
+        inputs: [image]
+        get_params: {format: oci}
+        params: {image: image/image.tar}
