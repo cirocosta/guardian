@@ -10,7 +10,7 @@ resources:
     source:
       repository: cirocosta/concourse-gdn
       tag: tracing
-      username: ((docker-username))
+      username: ((docker-user))
       password: ((docker-password))
 
 
