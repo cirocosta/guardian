@@ -7,3 +7,6 @@ rundmc/nstar/nstar
 gqt/--action
 gqt/down
 gqt/up
+
+keys/
+bin/
