@@ -83,6 +83,8 @@ type CommonCommand struct {
 
 		Tag       string `hidden:"true" long:"tag" description:"Optional 2-character identifier used for namespacing global configuration."`
 		SkipSetup bool   `long:"skip-setup" description:"Skip the preparation part of the host that requires root privileges"`
+
+		TracingEndpoint string `long:"tracing-endpoint" description:"Jaeger Tracing collector HTTP endpoint"`
 	} `group:"Server Configuration"`
 
 	Containers struct {

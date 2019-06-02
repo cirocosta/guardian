@@ -1,6 +1,7 @@
 package gardener
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -12,6 +13,8 @@ import (
 	"code.cloudfoundry.org/garden"
 	spec "code.cloudfoundry.org/guardian/gardener/container-spec"
 	"code.cloudfoundry.org/lager"
+
+	"github.com/opentracing/opentracing-go"
 )
 
 //go:generate counterfeiter . SysInfoProvider
@@ -170,6 +173,12 @@ func (g *Gardener) Create(containerSpec garden.ContainerSpec) (ctr garden.Contai
 		containerSpec.Handle = g.UidGenerator.Generate()
 	}
 
+	span := opentracing.StartSpan("create-container")
+	defer span.Finish()
+	span.SetTag("handle", containerSpec.Handle)
+
+	ctx := opentracing.ContextWithSpan(context.Background(), span)
+
 	log := g.Logger.Session("create", lager.Data{"handle": containerSpec.Handle})
 	log.Info("start")
 
@@ -213,11 +222,18 @@ func (g *Gardener) Create(containerSpec garden.ContainerSpec) (ctr garden.Contai
 		}
 	}()
 
-	if err := g.Volumizer.GC(log.Session(VolumizerSession)); err != nil {
-		log.Error("graph-cleanup-failed", err)
-	}
+	var runtimeSpec specs.Spec
 
-	runtimeSpec, err := g.Volumizer.Create(log, containerSpec)
+	func() {
+		span, _ := opentracing.StartSpanFromContext(ctx, "volumizer")
+		defer span.Finish()
+
+		if gcErr := g.Volumizer.GC(log.Session(VolumizerSession)); gcErr != nil {
+			log.Error("graph-cleanup-failed", gcErr)
+		}
+
+		runtimeSpec, err = g.Volumizer.Create(log, containerSpec)
+	}()
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +253,13 @@ func (g *Gardener) Create(containerSpec garden.ContainerSpec) (ctr garden.Contai
 		BaseConfig: runtimeSpec,
 	}
 
-	if err := g.Containerizer.Create(log, desiredSpec); err != nil {
+	func() {
+		span, _ := opentracing.StartSpanFromContext(ctx, "containerizer")
+		defer span.Finish()
+
+		err = g.Containerizer.Create(log, desiredSpec)
+	}()
+	if err != nil {
 		return nil, err
 	}
 
@@ -252,7 +274,14 @@ func (g *Gardener) Create(containerSpec garden.ContainerSpec) (ctr garden.Contai
 		return nil, err
 	}
 
-	if err = g.Networker.Network(log, containerSpec, actualSpec.Pid); err != nil {
+	func() {
+		span, _ := opentracing.StartSpanFromContext(ctx, "networker")
+		defer span.Finish()
+
+		err = g.Networker.Network(log, containerSpec, actualSpec.Pid)
+	}()
+
+	if err != nil {
 		return nil, err
 	}
 

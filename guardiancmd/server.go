@@ -20,6 +20,9 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/sigmon"
+
+	"github.com/uber/jaeger-client-go"
+	jaegercfg "github.com/uber/jaeger-client-go/config"
 )
 
 // These are the maximum caps an unprivileged container process ever gets
@@ -237,6 +240,24 @@ func (cmd *ServerCommand) Run(signals <-chan os.Signal, ready chan<- struct{}) e
 	if err != nil {
 		return err
 	}
+
+	tracingCfg := jaegercfg.Configuration{
+		Sampler: &jaegercfg.SamplerConfig{
+			Type:  jaeger.SamplerTypeConst,
+			Param: 1,
+		},
+		Reporter: &jaegercfg.ReporterConfig{
+			LogSpans:          true,
+			CollectorEndpoint: cmd.Server.TracingEndpoint,
+		},
+	}
+
+	closer, err := tracingCfg.InitGlobalTracer("gdn")
+	if err != nil {
+		logger.Error("starting-tracing-backend", err)
+		return err
+	}
+	defer closer.Close()
 
 	backend := cmd.createGardener(wiring)
 
